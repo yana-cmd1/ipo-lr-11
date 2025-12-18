@@ -1,42 +1,46 @@
 import json
 #Дмитрук Яны
 #Вариант 4
-print("start code")
-print("=" * 50)
-print("СОХРАНЕНИЕ ДАННЫХ В JSON ФАЙЛ")
-print("=" * 50)
+import requests   
+from bs4 import BeautifulSoup  
+import json   
+from urllib.parse import urljoin  
 
-input("\nНажмите Enter, чтобы начать...")
+def get_quotes_from_page(url):   
+    all_quotes = []   
+    quote_number = 1   
 
-# примерные данные (в реальности будут с сайта)
-teachers = [
-    {"id": 1, "name": "Амброжи Наталья Михайловна", "post": "Преподаватель высшей категории"},
-    {"id": 2, "name": "Бровка Дионисий Сергеевич", "post": "Преподаватель без категории"},
-    {"id": 3, "name": "Касперович Светлана Александровна", "post": "Преподаватель высшей категории"},
-    {"id": 4, "name": "Иванов Иван Иванович", "post": "Преподаватель первой категории"},
-    {"id": 5, "name": "Петрова Ольга Сергеевна", "post": "Методист"}
-]
+    while url:   
+        headers = {  # определяем заголовки для HTTP-запроса
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                          "AppleWebKit/537.36 (KHTML, like Gecko) "
+                          "Chrome/58.0.3029.110 Safari/537.3"  # имитация браузера
+        }
+        response = requests.get(url, headers=headers)  # отправляем GET-запрос по текущему URL с заголовками
+        if response.status_code != 200:  
+            print("Ошибка загрузки страницы")   
+            break  
+        soup = BeautifulSoup(response.text, 'html.parser')   
+        quote_blocks = soup.find_all("div", class_="quote")  # находим все блоки цитат на странице
 
-# выводим на экран
-print("\nСобранные данные:")
-print("-" * 50)
-for teacher in teachers:
-    print(f"{teacher['id']}. Teacher: {teacher['name']}; Post: {teacher['post']};")
+        for block in quote_blocks:  # Проходим по каждому блоку цитаты
+            text = block.find("span", class_="text").get_text(strip=True)   
+            all_quotes.append({"number": quote_number, "quote": text})   
+            quote_number += 1  # увеличиваем счетчик цитат
 
-# сохраняем в файлл
-filename = "data.json"
-with open(filename, 'w', encoding='utf-8') as f:
-    json.dump(teachers, f, ensure_ascii=False, indent=2)
+        next_btn = soup.find('li', class_='next')   
+        if next_btn and next_btn.a:   
+            url = urljoin(url, next_btn.a['href'])   
+        else:   
+            url = None  
 
-print("-" * 50)
-print(f"\nДанные сохранены в файл: {filename}")
-print(f"Всего записей: {len(teachers)}")
+    return all_quotes  # список собранных цитат
 
-# показываем содержимое файла
-print("\nСодержимое файла:")
-print("-" * 30)
-with open(filename, 'r', encoding='utf-8') as f:
-    print(f.read())
+def save_quotes(quotes, filename="data.json"):  # объявляем функцию для сохранения цитат в файл
+    with open(filename, 'w', encoding='utf-8') as f:  
+        json.dump(quotes, f, ensure_ascii=False, indent=2)  # ззаписываем список цитат в JSON файл с отступами
 
-input("\nНажмите Enter для выхода...")
-print("end code")
+if __name__ == '__main__':  
+    start_url = 'https://quotes.toscrape.com/'  # начальный URL для парсинга
+    quotes = get_quotes_from_page(start_url)  # вызываем функцию сбора цитат
+    save_quotes(quotes, filename='data.json')  # сохраняем в файл
