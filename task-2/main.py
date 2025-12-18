@@ -1,34 +1,41 @@
-# программа для сбора информации о преподавателях
-#Дмитрук Яны
-#Вариант 4
-print("start code")
-print("=" * 50)
-print("ПРОГРАММА ДЛЯ СБОРА ДАННЫХ О ПРЕПОДАВАТЕЛЯХ")
-print("=" * 50)
+# Дмитрук Яны
 
-input("\nНажмите Enter, чтобы начать сбор данных...")
+import requests  # импортируем библиотеку для выполнения HTTP-запросов
+from bs4 import BeautifulSoup  # импортируем для парсинга HTML-страниц
+import json  # импортируем для сохранения данных в файл
+from urllib.parse import urljoin  # импортируем для правильного объединения URL-адресов
 
-# здесь будет парсинг с сайта
-# пока используем примерные данные
+def get_quotes_from_page(url):  # для сбора цитат с страницы, принимает URL
+    all_quotes = []   
+    quote_number = 1   
 
-print("\nПримерные данные (реальный парсинг требует точных селекторов):")
-print("-" * 50)
+    while url:  
+        headers = {  # определяем заголовки длч HTTP-запроса
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                          "AppleWebKit/537.36 (KHTML, like Gecko) "
+                          "Chrome/58.0.3029.110 Safari/537.3"  # имитация браузера
+        }
+        response = requests.get(url, headers=headers)  # отправляем GET-запрос по текущему URL с заголовками
+        if response.status_code != 200:   
+            print("Ошибка загрузки страницы")  
+            break   
+        soup = BeautifulSoup(response.text, 'html.parser')  # создаем объект для парсинга HTML
+        quote_blocks = soup.find_all("div", class_="quote")   
 
-teachers = [
-    "Амброжи Наталья Михайловна - Преподаватель высшей категории",
-    "Бровка Дионисий Сергеевич - Преподаватель без категории",
-    "Касперович Светлана Александровна - Преподаватель высшей категории",
-    "Иванов Иван Иванович - Преподаватель первой категории",
-    "Петрова Ольга Сергеевна - Методист"
-]
+        for block in quote_blocks:   
+            text = block.find("span", class_="text").get_text(strip=True)  
+            all_quotes.append({"number": quote_number, "quote": text})  
+            print (f'{quote_number}. {text}')  
+            quote_number += 1  
 
-# выводим данные в нужном формате
-for i, teacher in enumerate(teachers, 1):
-    name, post = teacher.split(" - ")
-    print(f"{i}. Teacher: {name}; Post: {post};")
+        next_btn = soup.find('li', class_='next')  # ищем кнопку "следующая" страница
+        if next_btn and next_btn.a:   
+            url = urljoin(url, next_btn.a['href'])  # обновляем ссылкк на следующую страницу
+        else:   
+            url = None  
 
-print("-" * 50)
-print(f"Всего найдено: {len(teachers)} преподавателей")
+    return all_quotes  # возвращает список собранных цитат
 
-input("\nНажмите Enter для выхода...")
-print("end code")
+if __name__ == '__main__': 
+    start_url = 'https://quotes.toscrape.com/'  # начальный URL для парсинга
+    quotes = get_quotes_from_page(start_url)  # функция сбора цитат
