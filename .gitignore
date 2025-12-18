@@ -1,7 +1,0 @@
-venv/
-__pycache__/
-*.pyc
-data.json
-index.html
-.DS_Store
-Thumbs.db
